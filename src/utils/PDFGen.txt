@@ -1,0 +1,269 @@
+import jsPDF from 'jspdf';
+import { Resume } from '../lib/type';
+
+const formatDate = (dateString: string | Date) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric', month: 'short'
+  });
+};
+
+export const generatePDF = async (data: Resume, fileName: string): Promise<void> => {
+  const pdf = new jsPDF('p', 'pt', 'a4');
+  const pageWidth = 595.28; // A4 width in pt
+  const pageHeight = 841.89; // A4 height in pt
+  const margin = 57; // Approx 20mm in pt (20 / 0.352777 ≈ 56.69)
+  const contentWidth = pageWidth - 2 * margin;
+  const lineHeightFactor = 1.15;
+
+  let y = margin;
+
+  const addPageIfNeeded = (estimatedHeight: number) => {
+    if (y + estimatedHeight > pageHeight - margin) {
+      pdf.addPage();
+      y = margin;
+    }
+  };
+
+  const getTextHeight = (text: string, fontSize: number, maxWidth: number) => {
+    pdf.setFontSize(fontSize);
+    const lines = pdf.splitTextToSize(text, maxWidth);
+    return lines.length * fontSize * lineHeightFactor;
+  };
+
+  // Helper to add section header
+  const addSectionHeader = (title: string) => {
+    addPageIfNeeded(14 * lineHeightFactor + 10);
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(title.toUpperCase(), margin, y);
+    y += 14 * lineHeightFactor;
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, y, margin + contentWidth, y);
+    y += 10;
+    pdf.setFont('helvetica', 'normal');
+  };
+
+  // Header: Name
+  pdf.setFontSize(24);
+  pdf.setFont('helvetica', 'bold');
+  const nameLines = pdf.splitTextToSize(data.full_name, contentWidth);
+  nameLines.forEach((line: string) => {
+    pdf.text(line, margin, y);
+    y += 24 * lineHeightFactor;
+  });
+
+  // Contacts
+  pdf.setFontSize(12);
+  y += 5;
+  let currentX = margin;
+  const contactGap = 20;
+  const contacts = [];
+  if (data.email) contacts.push(data.email);
+  if (data.phone) contacts.push(data.phone);
+  if (data.linkedin) contacts.push(data.linkedin);
+
+  contacts.forEach((contact, index) => {
+    const contactWidth = pdf.getTextWidth(contact);
+    if (currentX + contactWidth > margin + contentWidth && index > 0) {
+      y += 12 * lineHeightFactor;
+      currentX = margin;
+    }
+    pdf.text(contact, currentX, y);
+    currentX += contactWidth + contactGap;
+  });
+  y += 12 * lineHeightFactor + 10;
+
+  // Border below header
+  pdf.setLineWidth(1);
+  pdf.line(margin, y, margin + contentWidth, y);
+  y += 15;
+
+  // Professional Summary
+  if (data.summary) {
+    addSectionHeader('Professional Summary');
+    pdf.setFontSize(11);
+    const summaryLines = pdf.splitTextToSize(data.summary, contentWidth);
+    summaryLines.forEach((line: string) => {
+      addPageIfNeeded(11 * lineHeightFactor);
+      pdf.text(line, margin, y);
+      y += 11 * lineHeightFactor;
+    });
+    y += 15;
+  }
+
+  // Professional Experience
+  if (data.experience && data.experience.length > 0) {
+    addSectionHeader('Professional Experience');
+    data.experience.forEach((exp) => {
+      // Estimate height for the entire experience block
+      let estimatedHeight = 12 * lineHeightFactor * 2 + 10; // Position/company + location/date + space
+      if (exp.description) {
+        exp.description.forEach((item) => {
+          estimatedHeight += getTextHeight(item, 11, contentWidth - 10);
+        });
+      }
+      addPageIfNeeded(estimatedHeight);
+
+      // Position and location
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(exp.position, margin, y);
+      const locStr = `${exp.city}${exp.city && exp.state ? ', ' : ''}${exp.state}`;
+      const locWidth = pdf.getTextWidth(locStr);
+      pdf.text(locStr, margin + contentWidth - locWidth, y);
+      y += 12 * lineHeightFactor;
+
+      // Company and dates
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(exp.company, margin, y);
+      const dateStr = `${formatDate(exp.startDate)} - ${exp.current ? 'Present' : formatDate(exp.endDate)}`;
+      const dateWidth = pdf.getTextWidth(dateStr);
+      pdf.text(dateStr, margin + contentWidth - dateWidth, y);
+      y += 12 * lineHeightFactor + 5;
+
+      // Description
+      if (exp.description && exp.description.length > 0) {
+        pdf.setFontSize(11);
+        exp.description.forEach((item) => {
+          const descLines = pdf.splitTextToSize(item, contentWidth - 10);
+          descLines.forEach((line: string, i: number) => {
+            addPageIfNeeded(11 * lineHeightFactor);
+            pdf.text(`${i === 0 ? '- ' : '  '}${line}`, margin + 5, y);
+            y += 11 * lineHeightFactor;
+          });
+        });
+      }
+      y += 10;
+    });
+    y += 10;
+  }
+
+  // Education
+  if (data.education && data.education.length > 0) {
+    addSectionHeader('Education');
+    data.education.forEach((edu) => {
+      // Estimate height
+      let estimatedHeight = 12 * lineHeightFactor * (edu.field ? 3 : 2) + (edu.gpa ? 12 * lineHeightFactor : 0) + 10;
+      addPageIfNeeded(estimatedHeight);
+
+      // Degree and location
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(edu.degree, margin, y);
+      const locStr = `${edu.city}${edu.city && edu.state ? ', ' : ''}${edu.state}`;
+      const locWidth = pdf.getTextWidth(locStr);
+      pdf.text(locStr, margin + contentWidth - locWidth, y);
+      y += 12 * lineHeightFactor;
+
+      // Institution and dates
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(edu.institution, margin, y);
+      const dateStr = `${formatDate(edu.startDate)} - ${formatDate(edu.endDate)}`;
+      const dateWidth = pdf.getTextWidth(dateStr);
+      pdf.text(dateStr, margin + contentWidth - dateWidth, y);
+      y += 12 * lineHeightFactor;
+
+      // Field
+      if (edu.field) {
+        pdf.text(edu.field, margin, y);
+        y += 12 * lineHeightFactor;
+      }
+
+      // GPA
+      if (edu.gpa) {
+        const gpaStr = `GPA: ${edu.gpa}`;
+        const gpaWidth = pdf.getTextWidth(gpaStr);
+        pdf.text(gpaStr, margin + contentWidth - gpaWidth, y - 12 * lineHeightFactor); // Align with dates
+      }
+      y += 10;
+    });
+    y += 10;
+  }
+
+  // Skills
+  if (data.skills && data.skills.length > 0) {
+    addSectionHeader('Skills');
+    pdf.setFontSize(11);
+    data.skills.forEach((group) => {
+      const skillStr = `${group.groupName}: ${group.skills.join(', ')}`;
+      const estimatedHeight = getTextHeight(skillStr, 11, contentWidth);
+      addPageIfNeeded(estimatedHeight);
+      pdf.setFont('helvetica', 'bold');
+      const groupNameWidth = pdf.getTextWidth(`${group.groupName}:`);
+      pdf.text(`${group.groupName}:`, margin, y);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(group.skills.join(', '), margin + groupNameWidth + 5, y);
+      y += 11 * lineHeightFactor + 5;
+    });
+    y += 10;
+  }
+
+  // Projects
+  if (data.projects && data.projects.length > 0) {
+    addSectionHeader('Projects');
+    data.projects.forEach((project) => {
+      // Estimate height
+      let estimatedHeight = 12 * lineHeightFactor + getTextHeight(project.description, 11, contentWidth) + 10;
+      if (project.technologies) estimatedHeight += 11 * lineHeightFactor;
+      addPageIfNeeded(estimatedHeight);
+
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(project.name, margin, y);
+      if (project.link) {
+        pdf.setTextColor(0, 0, 255);
+        const nameWidth = pdf.getTextWidth(project.name);
+        pdf.textWithLink(' (View Project)', margin + nameWidth, y, { url: project.link });
+        pdf.setTextColor(0, 0, 0);
+      }
+      y += 12 * lineHeightFactor;
+
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'normal');
+      const descLines = pdf.splitTextToSize(project.description, contentWidth);
+      descLines.forEach((line: string) => {
+        pdf.text(line, margin, y);
+        y += 11 * lineHeightFactor;
+      });
+
+      if (project.technologies && project.technologies.length > 0) {
+        y += 5;
+        pdf.text(project.technologies.join(', '), margin, y);
+        y += 11 * lineHeightFactor;
+      }
+      y += 10;
+    });
+    y += 10;
+  }
+
+  // Certifications
+  if (data.certifications && data.certifications.length > 0) {
+    addSectionHeader('Certifications');
+    data.certifications.forEach((cert) => {
+      // Estimate height
+      let estimatedHeight = 12 * lineHeightFactor + 11 * lineHeightFactor + 10;
+      addPageIfNeeded(estimatedHeight);
+
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(cert.name, margin, y);
+      y += 12 * lineHeightFactor;
+
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'normal');
+      let certStr = `${cert.issuer} - ${cert.date}`;
+      pdf.text(certStr, margin, y);
+      if (cert.link) {
+        pdf.setTextColor(0, 0, 255);
+        const strWidth = pdf.getTextWidth(certStr);
+        pdf.textWithLink(' (View Certificate)', margin + strWidth, y, { url: cert.link });
+        pdf.setTextColor(0, 0, 0);
+      }
+      y += 11 * lineHeightFactor + 10;
+    });
+  }
+
+  pdf.save(fileName);
+};

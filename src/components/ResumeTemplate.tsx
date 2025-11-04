@@ -1,0 +1,251 @@
+import React from 'react';
+import { Resume } from '../lib/type';
+import { Mail, Phone, Linkedin } from 'lucide-react';
+
+interface ResumeTemplateProps {
+  data: Resume;
+  editable?: boolean;
+  onEdit?: (field: string, value: any) => void;
+}
+
+const formatDate = (dateString: string | Date) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric', month: 'short'
+  });
+}
+
+const handleExperienceEdit = (
+  currentExperience: Resume['experience'],
+  expIndex: number,
+  descIndex: number,
+  newValue: string,
+  onEdit: (field: string, value: any) => void
+) => {
+  if (!currentExperience) return;
+  const updatedExperience = JSON.parse(JSON.stringify(currentExperience));
+  updatedExperience[expIndex].description[descIndex] = newValue;
+  onEdit('experience', updatedExperience);
+};
+
+export const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ data, editable = false, onEdit }) => {
+  const printStyles = `
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+    @media print {
+      body {
+        -webkit-print-color-adjust: exact;
+      }
+    }
+  `;
+
+  return (
+    <div id="resume-content" className="bg-white w-full max-w-[8.5in] mx-auto shadow-lg print:shadow-none">
+      <style>{printStyles}</style>
+      <div className="p-8 print:p-0">
+        <header className="border-b-2 border-gray-800 pb-4 mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">
+            {editable ? (
+              <input
+                type="text"
+                value={data.full_name}
+                onChange={(e) => onEdit?.('full_name', e.target.value)}
+                className="w-full border-b border-transparent hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors"
+              />
+            ) : (
+              data.full_name
+            )}
+          </h1>
+          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+            {data.email && (
+              <div className="flex items-center gap-1">
+                <Mail size={14} />
+                <span>{data.email}</span>
+              </div>
+            )}
+            {data.phone && (
+              <div className="flex items-center gap-1">
+                <Phone size={14} />
+                <span>{data.phone}</span>
+              </div>
+            )}
+            {data.linkedin && (
+              <div className="flex items-center gap-1">
+                <Linkedin size={14} />
+                <span>{data.linkedin}</span>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {data.summary && (
+          <section className="mb-6">
+            <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wide mb-2 border-b border-gray-300 pb-1">
+              Professional Summary
+            </h2>
+            {editable ? (
+              <textarea
+                value={data.summary}
+                onChange={(e) => onEdit?.('summary', e.target.value)}
+                className="w-full text-sm text-gray-700 leading-relaxed border border-transparent hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors p-2 rounded resize-y"
+                rows={3}
+              />
+            ) : (
+              <p className="text-sm text-gray-700 leading-relaxed">{data.summary}</p>
+            )}
+          </section>
+        )}
+
+        {data.experience && data.experience.length > 0 && (
+          <section className="mb-6 print:break-inside-avoid">
+            <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wide mb-3 border-b border-gray-300 pb-1">
+              Professional Experience
+            </h2>
+            {data.experience.map((exp, index) => (
+              <div key={index} className="mb-4">
+                <div className="flex justify-between items-start mb-1">
+                  <div className="flex-1">
+                    <h3 className="text-base font-semibold text-gray-900">{exp.position}</h3>
+                    <p className="text-sm font-medium text-gray-700">{exp.company}</p>
+                  </div>
+                  <div className="text-right text-sm text-gray-600">
+                    <p>{exp.city}{exp.city && exp.state && ', '}{exp.state}</p>
+                    <p>
+                      {formatDate(exp.startDate)} - {exp.current ? 'Present' : formatDate(exp.endDate)}
+                    </p>
+                  </div>
+                </div>
+                {exp.description && exp.description.length > 0 && (
+                  <ul className="list-disc list-outside ml-5 space-y-1">
+                    {exp.description.map((item, i) => (
+                      editable && onEdit ? (
+                        <li key={i}>
+                          <textarea
+                            value={item}
+                            onChange={(e) => handleExperienceEdit(data.experience, index, i, e.target.value, onEdit)}
+                            className="w-full text-sm text-gray-700 leading-relaxed border border-transparent hover:border-blue-400 focus:border-blue-500 focus:outline-none transition-colors p-1 rounded resize-y"
+                            rows={2}
+                          />
+                        </li>
+                      ) : (
+                        <li key={i} className="text-sm text-gray-700 leading-relaxed">
+                          {item}
+                        </li>
+                      )
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {data.education && data.education.length > 0 && (
+          <section className="mb-6 print:break-inside-avoid">
+            <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wide mb-3 border-b border-gray-300 pb-1">
+              Education
+            </h2>
+            {data.education.map((edu, index) => (
+              <div key={index} className="mb-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="text-base font-semibold text-gray-900">{edu.degree}</h3>
+                    <p className="text-sm font-medium text-gray-700">{edu.institution}</p>
+                    {edu.field && <p className="text-sm text-gray-600">{edu.field}</p>}
+                  </div>
+                  <div className="text-right text-sm text-gray-600">
+                    <p>{edu.city}{edu.city && edu.state && ', '}{edu.state}</p>
+                    <p>
+                      {formatDate(edu.startDate)} - {formatDate(edu.endDate)}
+                    </p>
+                    {edu.gpa && <p className="font-medium">GPA: {edu.gpa}</p>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {data.skills && data.skills.length > 0 && (
+          <section className="mb-6 print:break-inside-avoid">
+            <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wide mb-2 border-b border-gray-300 pb-1">
+              Skills
+            </h2>
+            <div className="space-y-1">
+              {data.skills.map((group, index) => (
+                <div key={index} className="flex items-start">
+                  <span className="font-semibold text-sm text-gray-800 w-48 print:w-40">{group.groupName}:</span>
+                  <span className="text-sm text-gray-700">{group.skills.join(', ')}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {data.projects && data.projects.length > 0 && (
+          <section className="mb-6 print:break-inside-avoid">
+            <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wide mb-3 border-b border-gray-300 pb-1">
+              Projects
+            </h2>
+            {data.projects.map((project, index) => (
+              <div key={index} className="mb-3">
+                <h3 className="text-base font-semibold text-gray-900">
+                  {project.name}
+                  {project.link && (
+                    <a
+                      href={project.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 ml-2 font-normal hover:underline"
+                    >
+                      View Project
+                    </a>
+                  )}
+                </h3>
+                <p className="text-sm text-gray-700 leading-relaxed mb-1">{project.description}</p>
+                {project.technologies && project.technologies.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {project.technologies.map((tech, i) => (
+                      <span key={i} className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {data.certifications && data.certifications.length > 0 && (
+          <section className="mb-6 print:break-inside-avoid">
+            <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wide mb-3 border-b border-gray-300 pb-1">
+              Certifications
+            </h2>
+            {data.certifications.map((cert, index) => (
+              <div key={index} className="mb-2">
+                <h3 className="text-base font-semibold text-gray-900">{cert.name}</h3>
+                <p className="text-sm text-gray-700">
+                  {cert.issuer} - {cert.date}
+                  {cert.link && (
+                    <a
+                      href={cert.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 ml-2 hover:underline"
+                    >
+                      View Certificate
+                    </a>
+                  )}
+                </p>
+              </div>
+            ))}
+          </section>
+        )}
+      </div>
+    </div>
+  );
+};
