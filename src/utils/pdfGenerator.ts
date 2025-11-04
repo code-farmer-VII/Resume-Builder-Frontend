@@ -297,6 +297,7 @@ export const generatePDF = async (data: Resume, fileName: string): Promise<void>
       pdf.setFont('arial', 'normal');
       pdf.text(cert.issuer, margin, y);
       const dateStr = cert.date;
+      pdf.setFont('arial', 'bold');
       const dateWidth = pdf.getTextWidth(dateStr);
       pdf.text(dateStr, margin + contentWidth - dateWidth, y);
       y += 11 * lineHeightFactor + 10;
