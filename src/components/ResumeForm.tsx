@@ -400,17 +400,7 @@ export const ResumeForm: React.FC<ResumeFormProps> = ({ onSubmit, initialData })
       </div>
 
       <div className="bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white rounded-xl shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold ">Experience</h2>
-          <Button
-            type="button"
-            size="sm"
-            onClick={addExperience}
-            className="bg-gradient-to-r from-blue-500 to-pink-500 text-white hover:opacity-90 shadow-md"
-          >
-            <Plus size={16} className="mr-1" /> Add Experience
-          </Button>
-        </div>
+        <h2 className="text-2xl font-bold mb-4">Experience</h2>
         {formData.experience.length > 0 && formData.experience.map((exp, index) => (
           <div key={index} className="mb-6 p-4 border border-gray-200 rounded-lg relative">
             <button
@@ -522,20 +512,18 @@ export const ResumeForm: React.FC<ResumeFormProps> = ({ onSubmit, initialData })
             </div>
           </div>
         ))}
+        <Button
+          type="button"
+          size="sm"
+          onClick={addExperience}
+          className="mt-4 bg-gradient-to-r from-blue-500 to-pink-500 text-white hover:opacity-90 shadow-md"
+        >
+          <Plus size={16} className="mr-1" /> Add Experience
+        </Button>
       </div>
 
       <div className="bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white rounded-xl shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold ">Education</h2>
-          <Button
-            type="button"
-            size="sm"
-            onClick={addEducation}
-            className="bg-gradient-to-r from-blue-500 to-pink-500 text-white hover:opacity-90 shadow-md"
-          >
-            <Plus size={16} className="mr-1" /> Add Education
-          </Button>
-        </div>
+        <h2 className="text-2xl font-bold mb-4">Education</h2>
         {formData.education.map((edu, index) => (
           <div key={index} className="mb-6 p-4 border border-gray-200 rounded-lg relative">
             {formData.education.length > 1 && (
@@ -619,15 +607,18 @@ export const ResumeForm: React.FC<ResumeFormProps> = ({ onSubmit, initialData })
             </div>
           </div>
         ))}
+        <Button
+          type="button"
+          size="sm"
+          onClick={addEducation}
+          className="mt-4 bg-gradient-to-r from-blue-500 to-pink-500 text-white hover:opacity-90 shadow-md"
+        >
+          <Plus size={16} className="mr-1" /> Add Education
+        </Button>
       </div>
 
       <div className="bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white rounded-xl shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold ">Skills</h2>
-          <Button type="button" size="sm" onClick={addSkillGroup} className="bg-gradient-to-r from-blue-500 to-pink-500 text-white hover:opacity-90 shadow-md">
-            <Plus size={16} className="mr-1" /> Add Skill Group
-          </Button>
-        </div>
+        <h2 className="text-2xl font-bold mb-4">Skills</h2>
         <div className="space-y-6">
           {formData.skills.map((group, groupIndex) => (
             <div key={groupIndex} className="p-4 border border-gray-200 rounded-lg relative">
@@ -689,20 +680,18 @@ export const ResumeForm: React.FC<ResumeFormProps> = ({ onSubmit, initialData })
             </div>
           ))}
         </div>
+        <Button
+          type="button"
+          size="sm"
+          onClick={addSkillGroup}
+          className="mt-4 bg-gradient-to-r from-blue-500 to-pink-500 text-white hover:opacity-90 shadow-md"
+        >
+          <Plus size={16} className="mr-1" /> Add Skill Group
+        </Button>
       </div>
 
       <div className="bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white rounded-xl shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold ">Projects</h2>
-          <Button
-            type="button"
-            size="sm"
-            onClick={addProject}
-            className="bg-gradient-to-r from-blue-500 to-pink-500 text-white hover:opacity-90 shadow-md"
-          >
-            <Plus size={16} className="mr-1" /> Add Project
-          </Button>
-        </div>
+        <h2 className="text-2xl font-bold mb-4">Projects</h2>
         {formData.projects.map((project, index) => (
           <div key={index} className="mb-6 p-4 border border-gray-200 rounded-lg relative">
             {formData.projects.length > 1 && (
@@ -769,20 +758,18 @@ export const ResumeForm: React.FC<ResumeFormProps> = ({ onSubmit, initialData })
             </div>
           </div>
         ))}
+        <Button
+          type="button"
+          size="sm"
+          onClick={addProject}
+          className="mt-4 bg-gradient-to-r from-blue-500 to-pink-500 text-white hover:opacity-90 shadow-md"
+        >
+          <Plus size={16} className="mr-1" /> Add Project
+        </Button>
       </div>
 
       <div className="bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white rounded-xl shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold ">Certifications (Optional)</h2>
-          <Button
-            type="button"
-            size="sm"
-            onClick={addCertification}
-            className="bg-gradient-to-r from-blue-500 to-pink-500 text-white hover:opacity-90 shadow-md"
-          >
-            <Plus size={16} className="mr-1" /> Add Certification
-          </Button>
-        </div>
+        <h2 className="text-2xl font-bold mb-4">Certifications (Optional)</h2>
         {formData.certifications.map((cert, index) => (
           <div key={index} className="mb-6 p-4 border border-gray-200 rounded-lg relative">
             <button
@@ -825,6 +812,14 @@ export const ResumeForm: React.FC<ResumeFormProps> = ({ onSubmit, initialData })
             </div>
           </div>
         ))}
+        <Button
+          type="button"
+          size="sm"
+          onClick={addCertification}
+          className="mt-4 bg-gradient-to-r from-blue-500 to-pink-500 text-white hover:opacity-90 shadow-md"
+        >
+          <Plus size={16} className="mr-1" /> Add Certification
+        </Button>
       </div>
 
       <div className="flex justify-end">

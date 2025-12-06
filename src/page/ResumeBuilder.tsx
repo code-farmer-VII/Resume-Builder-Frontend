@@ -7,7 +7,7 @@ import { Resume } from '../lib/type';
 import { useAuth } from '../context/AuthContext';
 import { Loader2, Sparkles, Download, CheckCircle } from 'lucide-react';
 import axios from '../utils/axios';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// OpenRouter API will be used instead of Google Generative AI
 import { useLocation, useNavigate } from 'react-router-dom';
 import { generatePDF } from '../utils/pdfGenerator';
 
@@ -95,8 +95,6 @@ const handleDownload = async () => {
   // };
 
   const handleFormSubmit = async (data: any) => {
-
-    setLoading(true);
     try {
       const resumeWithUser = {
         ...resumeData, // Preserve existing data like id
@@ -108,8 +106,6 @@ const handleDownload = async () => {
       setStep('preview');
     } catch (error) {
       console.error('Error processing form:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -117,23 +113,52 @@ const handleDownload = async () => {
     if (!resumeData) return;
     setEnhancing(true);
 
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    const apiKey = import.meta.env.VITE_Nova_2_Lite_v1;
     if (!apiKey) {
-      alert('Gemini API key is not configured. Please check your .env file.');
+      alert('OpenRouter API key is not configured. Please check your .env file.');
       setEnhancing(false);
       return;
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
-    const enhanceText = async (prompt: string, originalText: string) => {
+    const enhanceText = async (prompt: string, originalText: string, maxLines: number = 2) => {
       if (!originalText.trim()) return originalText;
       try {
-        // The new SDK version simplifies the response handling.
-        const result = await model.generateContent(`${prompt}: "${originalText}"`);
-        const response = await result.response;
-        return response.text();
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'amazon/nova-2-lite-v1:free',
+            messages: [
+              {
+                role: 'user',
+                content: `${prompt} in exactly ${maxLines} lines maximum. Return ONLY plain text without any markdown formatting (no *, #, -, •, numbers, or bullet points). Make it professional and concise: "${originalText}"`
+              }
+            ]
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        let enhancedText = data.choices[0]?.message?.content || originalText;
+        
+        // Clean up any markdown or formatting that might slip through
+        enhancedText = enhancedText
+          .replace(/^#+\s*/gm, '')           // Remove markdown headers
+          .replace(/^\*+\s*/gm, '')          // Remove asterisk bullets
+          .replace(/^-+\s*/gm, '')           // Remove dash bullets
+          .replace(/^•+\s*/gm, '')           // Remove bullet points
+          .replace(/^\d+\.\s*/gm, '')        // Remove numbered lists
+          .replace(/\*\*(.*?)\*\*/g, '$1')   // Remove bold markdown
+          .replace(/\*(.*?)\*/g, '$1')       // Remove italic markdown
+          .trim();
+        
+        return enhancedText;
       } catch (error) {
         console.error('Error enhancing text:', error);
         return originalText; // Return original text on error
@@ -141,19 +166,25 @@ const handleDownload = async () => {
     };
 
     try {
-      // Enhance Summary
-      const enhancedSummaryPromise = enhanceText('Enhance this professional and make in one statment only', resumeData.summary || '');
+      // Enhance Summary (5 lines max)
+      const enhancedSummaryPromise = enhanceText(
+        'Enhance this professional summary to highlight key skills and experience', 
+        resumeData.summary || '', 
+        5
+      );
 
-      // Enhance Experience Descriptions
+      // Enhance Experience Descriptions (2 lines max each)
       const enhancedExperiencePromises = (resumeData.experience || []).map(exp =>
         Promise.all(
-          (exp.description || []).map(desc => enhanceText('Enhance this job responsibility/achievement', desc))
+          (exp.description || []).map(desc => 
+            enhanceText('Enhance this job responsibility or achievement to be impactful and professional', desc, 2)
+          )
         )
       );
 
-      // Enhance Project Descriptions
+      // Enhance Project Descriptions (2 lines max)
       const enhancedProjectsPromises = (resumeData.projects || []).map(proj =>
-        enhanceText('Enhance this project description', proj.description || '')
+        enhanceText('Enhance this project description to showcase technical skills and impact', proj.description || '', 2)
       );
 
       const [enhancedSummary, enhancedExperience, enhancedProjects] = await Promise.all([
@@ -216,13 +247,7 @@ const handleDownload = async () => {
               </p>
             </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="animate-spin text-pink-400" size={48} />
-              </div>
-            ) : (
-              <ResumeForm onSubmit={handleFormSubmit} initialData={location.state?.resume} />
-            )}
+            <ResumeForm onSubmit={handleFormSubmit} initialData={location.state?.resume} />
           </div>
         </div>
       </>

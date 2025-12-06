@@ -10,7 +10,6 @@ import {
   Eye,
   Pencil,
   Share2,
-  Loader2,
   CheckCircle,
   Trash2,
   AlertTriangle,
@@ -20,11 +19,12 @@ import { ResumeTemplate } from '../components/ResumeTemplate';
 import axios from '../utils/axios';
 import { useNavigate } from 'react-router-dom';
 
+
+
 export const ResumeHistory: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [resumes, setResumes] = useState<Resume[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -53,8 +53,6 @@ export const ResumeHistory: React.FC = () => {
       alert('Error loading resumes.');
       console.error('Error loading resumes:', error);
       setResumes([]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -134,13 +132,8 @@ const handleDownload = async (resume: Resume) => {
     alert('Link copied to clipboard!');
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] flex items-center justify-center">
-        <Loader2 className="animate-spin text-pink-400" size={48} />
-      </div>
-    );
-  }
+
+
 
   if (selectedResume) {
     return (

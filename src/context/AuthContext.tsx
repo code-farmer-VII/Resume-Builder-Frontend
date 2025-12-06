@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import axios from '../utils/axios';
 
 interface User {
@@ -9,7 +9,6 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  loading: boolean;
   signUp: (name: string, email: string, password: string, password_confirmation: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -24,7 +23,7 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);
 
   // CSRF + API request helper
   const getCsrfCookie = async () => {
@@ -44,7 +43,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
       setUser(null);
     } finally {
-      setLoading(false);
+      setInitializing(false);
     }
   };
 
@@ -107,8 +106,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  // Show nothing while checking auth on initial load
+  if (initializing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 border-4 border-pink-500/30 border-t-pink-500 rounded-full animate-spin"></div>
+          <p className="text-white/60 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, fetchUser }}>
+    <AuthContext.Provider value={{ user, signUp, signIn, signOut, fetchUser }}>
       {children}
     </AuthContext.Provider>
   );
