@@ -23,7 +23,7 @@ export const Navbar: React.FC = () => {
               <FileText className="text-white" size={20} />
             </div>
             <span className="text-lg font-bold bg-gradient-to-r from-pink-400 to-blue-400 bg-clip-text text-transparent">
-              Resume Builder Khalix Academy
+              Resume Builder Khilx Academy
             </span>
           </div>
 

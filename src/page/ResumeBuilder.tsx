@@ -7,6 +7,7 @@ import { Resume } from '../lib/type';
 import { useAuth } from '../context/AuthContext';
 import { Loader2, Sparkles, Download, CheckCircle } from 'lucide-react';
 import axios from '../utils/axios';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { generatePDF } from '../utils/pdfGenerator';
 
@@ -113,62 +114,76 @@ const handleDownload = async () => {
   };
 
   const handleEnhance = async () => {
-    getCsrfCookie();
     if (!resumeData) return;
     setEnhancing(true);
-    try {
-      const experienceDescriptions: string[] = [];
-      resumeData.experience?.forEach((exp) => {
-        if (exp.description) {
-          experienceDescriptions.push(...exp.description);
-        }
-      });
 
-      const projectDescriptions: string[] = [];
-      resumeData.projects?.forEach((proj) => {
-        if (proj.description) {
-          projectDescriptions.push(proj.description);
-        }
-      });
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      alert('Gemini API key is not configured. Please check your .env file.');
+      setEnhancing(false);
+      return;
+    }
 
-      const response = await axios.post('/api/enhance-resume', {
-        summary: resumeData.summary || '',
-        experienceDescriptions: experienceDescriptions,
-        projectDescriptions: projectDescriptions,
-      });
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
-      const { enhancedSummary, enhancedExperienceDescriptions, enhancedProjectDescriptions } = response.data;
-
-      const updatedExperience = resumeData.experience ? [...resumeData.experience] : [];
-      let expDescIndex = 0;
-
-      updatedExperience.forEach((exp) => {
-        const descCount = exp.description?.length || 0;
-        if (descCount > 0 && enhancedExperienceDescriptions) {
-          exp.description = enhancedExperienceDescriptions.slice(expDescIndex, expDescIndex + descCount);
-          expDescIndex += descCount;
-        }
-      });
-
-      const updatedProjects = resumeData.projects ? [...resumeData.projects] : [];
-      if (enhancedProjectDescriptions) {
-        updatedProjects.forEach((proj, index) => {
-          if (proj.description && enhancedProjectDescriptions[index]) {
-            proj.description = enhancedProjectDescriptions[index];
-          }
-        });
+    const enhanceText = async (prompt: string, originalText: string) => {
+      if (!originalText.trim()) return originalText;
+      try {
+        // The new SDK version simplifies the response handling.
+        const result = await model.generateContent(`${prompt}: "${originalText}"`);
+        const response = await result.response;
+        return response.text();
+      } catch (error) {
+        console.error('Error enhancing text:', error);
+        return originalText; // Return original text on error
       }
+    };
+
+    try {
+      // Enhance Summary
+      const enhancedSummaryPromise = enhanceText('Enhance this professional and make in one statment only', resumeData.summary || '');
+
+      // Enhance Experience Descriptions
+      const enhancedExperiencePromises = (resumeData.experience || []).map(exp =>
+        Promise.all(
+          (exp.description || []).map(desc => enhanceText('Enhance this job responsibility/achievement', desc))
+        )
+      );
+
+      // Enhance Project Descriptions
+      const enhancedProjectsPromises = (resumeData.projects || []).map(proj =>
+        enhanceText('Enhance this project description', proj.description || '')
+      );
+
+      const [enhancedSummary, enhancedExperience, enhancedProjects] = await Promise.all([
+        enhancedSummaryPromise,
+        Promise.all(enhancedExperiencePromises),
+        Promise.all(enhancedProjectsPromises),
+      ]);
+
+      const updatedExperience = (resumeData.experience || []).map((exp, i) => ({
+        ...exp,
+        description: enhancedExperience[i] || exp.description,
+      }));
+
+      const updatedProjects = (resumeData.projects || []).map((proj, i) => ({
+        ...proj,
+        description: enhancedProjects[i] || proj.description,
+      }));
+
+      alert(`Enhanced Summary: ${enhancedSummary}`);
+    
 
       setResumeData({
         ...resumeData,
-        summary: enhancedSummary || resumeData.summary,
+        summary: enhancedSummary,
         experience: updatedExperience,
         projects: updatedProjects,
         ai_enhanced: true,
       });
       alert("Enhancement complete! Review the updated resume.");
     } catch (error) {
-      alert("there is an error on enhancing the resume")
       console.error('Error enhancing resume:', error);
       alert('Failed to enhance resume. Please try again.');
     } finally {

@@ -105,6 +105,7 @@ const handleDownload = async (resume: Resume) => {
   //     }, 500);
   //   } catch (error) {
   //     console.error('Error generating PDF:', error);
+  //   } catch (error) {;
   //     alert('Failed to generate PDF. Please try again.');
   //   }
   // };
