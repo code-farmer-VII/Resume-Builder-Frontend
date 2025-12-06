@@ -114,8 +114,11 @@ const handleDownload = async () => {
     setEnhancing(true);
 
     const apiKey = import.meta.env.VITE_Nova_2_Lite_v1;
+    console.log('API Key exists:', !!apiKey);
+    console.log('API Key prefix:', apiKey?.substring(0, 10));
+    
     if (!apiKey) {
-      alert('OpenRouter API key is not configured. Please check your .env file.');
+      alert('OpenRouter API key is not configured. Please check your .env file and restart the dev server.');
       setEnhancing(false);
       return;
     }
@@ -123,11 +126,14 @@ const handleDownload = async () => {
     const enhanceText = async (prompt: string, originalText: string, maxLines: number = 2) => {
       if (!originalText.trim()) return originalText;
       try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        console.log('Enhancing text:', originalText);
+        
+        // First API call with reasoning
+        let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             model: 'amazon/nova-2-lite-v1:free',
@@ -136,16 +142,27 @@ const handleDownload = async () => {
                 role: 'user',
                 content: `${prompt} in exactly ${maxLines} lines maximum. Return ONLY plain text without any markdown formatting (no *, #, -, •, numbers, or bullet points). Make it professional and concise: "${originalText}"`
               }
-            ]
+            ],
+            reasoning: {
+              enabled: true
+            }
           })
         });
 
+        console.log('API Response status:', response.status);
+
         if (!response.ok) {
-          throw new Error(`API request failed: ${response.statusText}`);
+          const errorData = await response.json().catch(() => ({}));
+          console.error('API Error:', errorData);
+          throw new Error(`API request failed: ${response.statusText} - ${JSON.stringify(errorData)}`);
         }
 
-        const data = await response.json();
-        let enhancedText = data.choices[0]?.message?.content || originalText;
+        // Extract the assistant message with reasoning_details
+        const result = await response.json();
+        console.log('API Response data:', result);
+        
+        const assistantMessage = result.choices[0]?.message;
+        let enhancedText = assistantMessage?.content || originalText;
         
         // Clean up any markdown or formatting that might slip through
         enhancedText = enhancedText
@@ -158,10 +175,11 @@ const handleDownload = async () => {
           .replace(/\*(.*?)\*/g, '$1')       // Remove italic markdown
           .trim();
         
+        console.log('Enhanced text:', enhancedText);
         return enhancedText;
       } catch (error) {
         console.error('Error enhancing text:', error);
-        return originalText; // Return original text on error
+        throw error; // Throw to be caught by main handler
       }
     };
 
@@ -203,8 +221,10 @@ const handleDownload = async () => {
         description: enhancedProjects[i] || proj.description,
       }));
 
-      alert(`Enhanced Summary: ${enhancedSummary}`);
-    
+      console.log('All enhancements complete');
+      console.log('Enhanced Summary:', enhancedSummary);
+      console.log('Enhanced Experience:', updatedExperience);
+      console.log('Enhanced Projects:', updatedProjects);
 
       setResumeData({
         ...resumeData,
@@ -216,7 +236,8 @@ const handleDownload = async () => {
       alert("Enhancement complete! Review the updated resume.");
     } catch (error) {
       console.error('Error enhancing resume:', error);
-      alert('Failed to enhance resume. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to enhance resume: ${errorMessage}. Check console for details.`);
     } finally {
       setEnhancing(false);
     }
